@@ -1,32 +1,70 @@
 import { useEffect, useRef } from 'react'
 
-type Props = { onClose: () => void }
-
-// Mission : en Tab, le focus doit rester PIÉGÉ dans cette modale (focus
-// trap), et revenir sur le bouton qui l'a ouverte à la fermeture.
-// Pour l'instant, Tab s'échappe vers la page derrière. Rien n'est fait.
+interface Props {
+  onClose: () => void
+}
 
 export default function Modal({ onClose }: Props) {
-  const ref = useRef<HTMLDivElement>(null)
+  const modalContainerRef = useRef<HTMLDivElement>(null)
+  const lastActiveElement = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+    lastActiveElement.current = document.activeElement as HTMLElement
+    
+    const focusableNodes = modalContainerRef.current!.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    )
+    
+    if (focusableNodes.length > 0) {
+      focusableNodes[0].focus()
     }
-    document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
+
+    const handleKeyboardNavigation = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose()
+        return
+      }
+      
+      if (event.key !== 'Tab') return
+
+      const firstNode = focusableNodes[0]
+      const lastNode = focusableNodes[focusableNodes.length - 1]
+
+      if (event.shiftKey && document.activeElement === firstNode) {
+        event.preventDefault()
+        lastNode.focus()
+      } else if (!event.shiftKey && document.activeElement === lastNode) {
+        event.preventDefault()
+        firstNode.focus()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyboardNavigation)
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeyboardNavigation)
+      if (lastActiveElement.current) {
+        lastActiveElement.current.focus()
+      }
+    }
   }, [onClose])
 
   return (
     <div className="modal-overlay">
-      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="m-title" ref={ref}>
-        <h2 id="m-title">Préférences avancées</h2>
-        <label htmlFor="lang">Langue</label>
-        <select id="lang">
+      <div 
+        className="modal" 
+        role="dialog" 
+        aria-modal="true" 
+        aria-labelledby="advanced-prefs-title" 
+        ref={modalContainerRef}
+      >
+        <h2 id="advanced-prefs-title">Préférences avancées</h2>
+        <label htmlFor="language-select">Langue</label>
+        <select id="language-select">
           <option>Français</option>
           <option>English</option>
         </select>
-        <button onClick={onClose}>Fermer</button>
+        <button type="button" onClick={onClose}>Fermer</button>
       </div>
     </div>
   )
