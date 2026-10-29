@@ -1,20 +1,25 @@
-import { useState } from 'react'
-
-type Props = { title: string; children: React.ReactNode }
-
-// Mission : ce composant marche visuellement, mais un lecteur d'écran
-// n'a aucune idée que c'est un volet qui s'ouvre/se ferme. Ajoute les
-// attributs ARIA qui manquent (vocabulaire vu dans la quête a11y-03).
+import { useId, useState } from 'react'
 
 export default function Accordion({ title, children }: Props) {
-  const [expanded, setExpanded] = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
+  const sectionId = useId()
 
   return (
     <div className="accordion">
-      <button className="accordion-trigger" onClick={() => setExpanded(!expanded)}>
-        {title} {expanded ? '▲' : '▼'}
+      <button
+        className="accordion-trigger"
+        aria-expanded={isOpen}
+        aria-controls={sectionId}
+        onClick={() => setIsOpen((prev) => !prev)}
+      >
+        {title} {isOpen ? '▲' : '▼'}
       </button>
-      {expanded && <div className="accordion-panel">{children}</div>}
+      
+      {isOpen && (
+        <div id={sectionId} className="accordion-panel">
+          {children}
+        </div>
+      )}
     </div>
   )
 }
